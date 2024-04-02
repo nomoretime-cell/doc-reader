@@ -29,6 +29,8 @@ class Settings(BaseSettings):
         & ~pymupdf.TEXT_PRESERVE_IMAGES
     )
 
+    PDF_IMAGE_DPI: int = 96
+
     # OCR
     INVALID_CHARS: List[str] = [chr(0xFFFD), "�"]
     OCR_DPI: int = 400

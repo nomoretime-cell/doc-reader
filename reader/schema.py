@@ -63,7 +63,7 @@ class Span(BboxElement):
     size: Optional[int] = None
     flags: Optional[int] = None
     origin: Optional[List[float]] = None
-    
+
     block_type: Optional[str] = None
     selected: bool = True
 
@@ -84,7 +84,7 @@ class Span(BboxElement):
             ("origin", self.origin),
             ("bbox", self.bbox),
             ("ascender", self.ascender),
-            ("descender", self.descender)
+            ("descender", self.descender),
         ]
 
         max_length = max(len(field) for field, _ in table)
@@ -155,12 +155,22 @@ class Block(BboxElement):
                 span.block_type = block_type
 
 
+class ImageInfo(BaseModel):
+    image_base64: str
+    image_height: float
+    image_width: float
+    page_pt_box: List[float]
+    page_pt_width: float
+    page_pt_height: float
+
+
 class Page(BboxElement):
     blocks: List[Block]
     pnum: int
     text_font: Optional[int] = None
     column_count: Optional[int] = None
     rotation: Optional[int] = None  # Rotation degrees of the page
+    image_info: Optional[ImageInfo] = None
 
     def get_nonblank_lines(self) -> List[Line]:
         lines = self.get_all_lines()

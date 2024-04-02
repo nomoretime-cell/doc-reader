@@ -1,12 +1,16 @@
+import base64
+import io
 import os
-from typing import Tuple, List, Optional, Union
+from typing import Tuple, Optional, Union
 
 from spellchecker import SpellChecker
+from PIL import Image
+from math import isclose
 
 from reader.ocr.page import ocr_entire_page
 from reader.ocr.utils import detect_bad_ocr, font_flags_decomposer
 from reader.settings import settings
-from reader.schema import Span, Line, Block, Page
+from reader.schema import ImageInfo, Span, Line, Block, Page
 from concurrent.futures import ThreadPoolExecutor
 
 import fitz as pymupdf
@@ -24,7 +28,7 @@ def get_doc_text(doc) -> str:
     return full_text
 
 
-def sort_rotated_text(blocks, tolerance=1.25) -> List[Block]:
+def sort_rotated_text(blocks, tolerance=1.25) -> list[Block]:
     vertical_groups = {}
     for block in blocks:
         group_key = round(block.bbox[1] / tolerance) * tolerance
@@ -63,7 +67,7 @@ def get_blocks(
     tess_lang: str,
     spellchecker: Optional[SpellChecker] = None,
     ocr=False,
-) -> List[Block]:
+) -> list[Block]:
     page: pymupdf.Page = doc.load_page(pnum)
     rotation = page.rotation
 
@@ -115,6 +119,48 @@ def get_blocks(
     return return_blocks
 
 
+def get_page_image(mupdf_page: pymupdf.Page, inner_page: Page):
+    # 1pt = 1/72 inch (pt可以理解成物理尺寸)
+    # image width = inch width * dpi
+    # image height = inch height * dpi
+
+    # inner_page.bbox = [0.0, 0.0, 612.0, 792.0]  612 is 612pt, 792 is 792pt
+    # image width(816) = 612pt/72(pt/inch) * 96 dpi
+    # image height(1056) = 792pt/72(pt/inch) * 96 dpi
+
+    # pt 也被用来表述 字体大小，页面元素，行间距，行高等
+    # dpi（Dots Per Inch）的值在数字图像上下文指的是 像素，否则是 打印点
+    # 图像的大小取决于 dpi
+
+    pixmap = mupdf_page.get_pixmap(
+        dpi=settings.PDF_IMAGE_DPI, annots=False, clip=inner_page.bbox
+    )
+    png_image = Image.open(io.BytesIO(pixmap.pil_tobytes(format="PNG")))
+    image = png_image.convert("RGB")
+    image_width, image_height = image.size
+
+    page_pt_box = inner_page.bbox
+    page_pt_width = inner_page.width
+    page_pt_height = inner_page.height
+
+    assert isclose(
+        image_width / page_pt_width, image_height / page_pt_height, abs_tol=2e-2
+    )
+
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    return ImageInfo(
+        image_base64=image_base64,
+        image_height=image.height,
+        image_width=image.width,
+        page_pt_box=page_pt_box,
+        page_pt_width=page_pt_width,
+        page_pt_height=page_pt_height,
+    )
+
+
 def get_page(
     doc: pymupdf.Document,
     pnum: int,
@@ -158,6 +204,8 @@ def get_page(
             ocr_failed = 1
         else:
             ocr_success = 1
+
+    page.image_info = get_page_image(doc.load_page(pnum), page)
     return page, {
         "ocr_pages": ocr_pages,
         "ocr_failed": ocr_failed,
@@ -171,8 +219,8 @@ def get_pages(
     spell_lang: Optional[str],
     max_pages: Optional[int] = None,
     parallel: int = settings.OCR_PARALLEL_WORKERS,
-) -> Tuple[List[Page], List[Union[int, str, int]], dict]:
-    pages: List[Page] = []
+) -> Tuple[list[Page], list[Union[int, str, int]], dict]:
+    pages: list[Page] = []
     ocr_pages = 0
     ocr_failed = 0
     ocr_success = 0
