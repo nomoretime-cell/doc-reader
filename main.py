@@ -2,24 +2,25 @@
 # sys.path.append("/home/yejibing/code/doc-parser/pyfunvice")
 # from pyfunvice import faas, start_faas
 
+from reader.settings import settings
+from reader.extract_text import get_pages
+from reader.schema import Page
+from pyfunvice import faas, start_faas
+
 import fitz as pymupdf
 import logging
 import magic
-
-from pyfunvice import faas, start_faas
-from reader.schema import Page
-from reader.settings import settings
-from reader.extract_text import get_pages
 
 
 def get_language() -> tuple[str, str, str]:
     lang = settings.DEFAULT_LANG
 
-    # tesseract default add "eng"
+    # tesseract language (default add "eng")
     tesseract_lang = settings.TESSERACT_LANGUAGES.get(lang, "eng")
     if "eng" not in tesseract_lang:
         tesseract_lang = f"eng+{tesseract_lang}"
 
+    # spellchecker language
     spell_lang = settings.SPELLCHECK_LANGUAGES.get(lang, None)
     return lang, tesseract_lang, spell_lang
 

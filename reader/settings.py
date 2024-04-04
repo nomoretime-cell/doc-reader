@@ -7,13 +7,37 @@ import fitz as pymupdf
 
 
 class Settings(BaseSettings):
+    # Debug
+    DEBUG: bool = False
+    DEBUG_DATA_FOLDER: Optional[str] = None
+
     # General
     WORKER_NUM: int = 1
     TORCH_DEVICE: str = "cpu"
-    INFERENCE_RAM: int = 40  # How much VRAM each GPU has (in GB).
-    VRAM_PER_TASK: float = 2.5  # How much VRAM to allocate per task (in GB).  Peak marker VRAM usage is around 3GB, but avg across workers is lower.
-    DEFAULT_LANG: str = "Chinese"  # Default language we assume files to be in, should be one of the keys in TESSERACT_LANGUAGES
+    PDF_IMAGE_DPI: int = 96
 
+    # Language
+    DEFAULT_LANG: str = "Chinese"
+    TESSERACT_LANGUAGES: Dict = {
+        "English": "eng",
+        "Spanish": "spa",
+        "Portuguese": "por",
+        "French": "fra",
+        "German": "deu",
+        "Russian": "rus",
+        "Chinese": "chi_sim",
+    }
+    SPELLCHECK_LANGUAGES: Dict = {
+        "English": "en",
+        "Spanish": "es",
+        "Portuguese": "pt",
+        "French": "fr",
+        "German": "de",
+        "Russian": "ru",
+        "Chinese": None,
+    }
+
+    # Filetypes
     SUPPORTED_FILETYPES: Dict = {
         "application/pdf": "pdf",
         "application/epub+zip": "epub",
@@ -29,38 +53,14 @@ class Settings(BaseSettings):
         & ~pymupdf.TEXT_PRESERVE_IMAGES
     )
 
-    PDF_IMAGE_DPI: int = 96
-
     # OCR
     INVALID_CHARS: List[str] = [chr(0xFFFD), "�"]
     OCR_DPI: int = 400
     TESSDATA_PREFIX: str = ""
-    TESSERACT_LANGUAGES: Dict = {
-        "English": "eng",
-        "Spanish": "spa",
-        "Portuguese": "por",
-        "French": "fra",
-        "German": "deu",
-        "Russian": "rus",
-        "Chinese": "chi_sim",
-    }
     TESSERACT_TIMEOUT: int = 20  # When to give up on OCR
-    SPELLCHECK_LANGUAGES: Dict = {
-        "English": "en",
-        "Spanish": "es",
-        "Portuguese": "pt",
-        "French": "fr",
-        "German": "de",
-        "Russian": "ru",
-        "Chinese": None,
-    }
-    OCR_ALL_PAGES: bool = False  # Run OCR on every page even if text can be extracted
-    OCR_PARALLEL_WORKERS: int = 2  # How many CPU workers to use for OCR
+    OCR_ALL_PAGES: bool = True  # Run OCR on every page even if text can be extracted
+    OCR_PARALLEL_WORKERS: int = 10  # How many CPU workers to use for OCR
     OCR_ENGINE: str = "ocrmypdf"  # Which OCR engine to use, either "tesseract" or "ocrmypdf".  Ocrmypdf is higher quality, but slower.
-
-    # Debug
-    DEBUG: bool = False  # Enable debug logging
-    DEBUG_DATA_FOLDER: Optional[str] = None
 
     @computed_field
     @property

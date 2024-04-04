@@ -13,7 +13,7 @@ ocrmypdf.configure_logging(verbosity=ocrmypdf.Verbosity.quiet)
 
 
 def ocr_entire_page(
-    page, lang: str, spellchecker: Optional[SpellChecker] = None
+    page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     if settings.OCR_ENGINE == "tesseract":
         return ocr_entire_page_tess(page, lang, spellchecker)
@@ -24,7 +24,7 @@ def ocr_entire_page(
 
 
 def ocr_entire_page_tess(
-    page, lang: str, spellchecker: Optional[SpellChecker] = None
+    page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     try:
         full_tp = page.get_textpage_ocr(
@@ -44,13 +44,14 @@ def ocr_entire_page_tess(
         # OCR can fail if there is a scanned blank page with some faint text impressions, for example
         if detect_bad_ocr(full_text, spellchecker):
             return []
-    except RuntimeError:
+    except RuntimeError as e:
+        print(e)
         return []
     return blocks
 
 
 def ocr_entire_page_ocrmp(
-    page, lang: str, spellchecker: Optional[SpellChecker] = None
+    page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     # Use ocrmypdf to get OCR text for the whole page
     one_page_doc = pymupdf.open()  # make temporary 1-pager

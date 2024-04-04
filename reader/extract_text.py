@@ -1,6 +1,5 @@
 import base64
 import io
-import os
 from typing import Tuple, Optional, Union
 
 from spellchecker import SpellChecker
@@ -16,8 +15,6 @@ from concurrent.futures import ThreadPoolExecutor
 import fitz as pymupdf
 
 from reader.bbox import correct_rotation
-
-os.environ["TESSDATA_PREFIX"] = settings.TESSDATA_PREFIX
 
 
 def get_doc_text(doc) -> str:
