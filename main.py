@@ -22,7 +22,7 @@ def get_language() -> tuple[str, str, str]:
 
     # spellchecker language
     spell_lang = settings.SPELLCHECK_LANGUAGES.get(lang, "en")
-    return lang, tesseract_lang, spell_lang
+    return tesseract_lang, spell_lang
 
 
 def get_type(
@@ -42,12 +42,10 @@ def get_type(
         raise ValueError(f"input file type [{type}] is not supported.")
 
 
-class MetaInfo:
-    def __init__(self, filetype, language, page_num, toc, ocr_stats):
+class DocInfo:
+    def __init__(self, filetype, page_num, ocr_stats):
         self.filetype = filetype
-        self.language = language
         self.page_num = page_num
-        self.toc = toc
         self.ocr_stats = ocr_stats
 
 
@@ -58,7 +56,7 @@ def read_pdf(
     debug_mode: bool = False,
 ):
     # get target language & file type
-    lang, tesseract_lang, spell_lang = get_language()
+    tesseract_lang, spell_lang = get_language()
     filetype = get_type(fname)
 
     # read document
@@ -67,7 +65,7 @@ def read_pdf(
         doc = pymupdf.open("pdf", doc.convert_to_pdf())
 
     # parser document
-    pages, toc, ocr_stats = get_pages(
+    pages, ocr_stats = get_pages(
         doc,
         tesseract_lang,
         spell_lang,
@@ -75,16 +73,16 @@ def read_pdf(
         parallel=settings.OCR_PARALLEL_WORKERS * parallel_factor,
     )
 
-    return MetaInfo(filetype, lang, len(pages), toc, ocr_stats), pages
+    return DocInfo(filetype, len(pages), ocr_stats), pages
 
 
 @faas(path="/api/v1/parser/file", body_type="form-data")
 async def parser_file(file_name: str):
     pages: list[Page] = []
-    meta_info: MetaInfo = None
-    meta_info, pages = read_pdf(file_name)
-    return {"meta_info": meta_info, "pages": pages}
+    doc_info: DocInfo = None
+    doc_info, pages = read_pdf(file_name)
+    return {"doc_info": doc_info, "pages": pages}
 
 
 if __name__ == "__main__":
-    start_faas(workers=1)
+    start_faas(workers=settings.WORKER_NUM)

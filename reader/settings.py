@@ -1,7 +1,4 @@
-from typing import Optional, List, Dict
-
 from dotenv import find_dotenv
-from pydantic import computed_field
 from pydantic_settings import BaseSettings
 import fitz as pymupdf
 
@@ -9,16 +6,19 @@ import fitz as pymupdf
 class Settings(BaseSettings):
     # Debug
     DEBUG: bool = False
-    DEBUG_DATA_FOLDER: Optional[str] = None
 
-    # General
+    # Core Settings
     WORKER_NUM: int = 1
-    TORCH_DEVICE: str = "cpu"
+    OCR_ALL_PAGES: bool = True
+    OCR_PARALLEL_WORKERS: int = 10
+    TESSDATA_PREFIX: str = ""
+
+    # PDF Image
     PDF_IMAGE_DPI: int = 96
 
     # Language
     LANGUAGE: str = "Chinese"
-    TESSERACT_LANGUAGES: Dict = {
+    TESSERACT_LANGUAGES: dict = {
         "English": "eng",
         "Spanish": "spa",
         "Portuguese": "por",
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         "Russian": "rus",
         "Chinese": "chi_sim",
     }
-    SPELLCHECK_LANGUAGES: Dict = {
+    SPELLCHECK_LANGUAGES: dict = {
         "English": "en",
         "Spanish": "es",
         "Portuguese": "pt",
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     }
 
     # Filetypes
-    SUPPORTED_FILETYPES: Dict = {
+    SUPPORTED_FILETYPES: dict = {
         "application/pdf": "pdf",
         "application/epub+zip": "epub",
         "application/x-mobipocket-ebook": "mobi",
@@ -54,18 +54,10 @@ class Settings(BaseSettings):
     )
 
     # OCR
-    INVALID_CHARS: List[str] = [chr(0xFFFD), "�"]
+    INVALID_CHARS: list[str] = [chr(0xFFFD), "�"]
     OCR_DPI: int = 400
-    TESSDATA_PREFIX: str = ""
-    TESSERACT_TIMEOUT: int = 20  # When to give up on OCR
-    OCR_ALL_PAGES: bool = True  # Run OCR on every page even if text can be extracted
-    OCR_PARALLEL_WORKERS: int = 10  # How many CPU workers to use for OCR
-    OCR_ENGINE: str = "ocrmypdf"  # Which OCR engine to use, either "tesseract" or "ocrmypdf".  Ocrmypdf is higher quality, but slower.
-
-    @computed_field
-    @property
-    def CUDA(self) -> bool:
-        return "cuda" in self.TORCH_DEVICE
+    TESSERACT_TIMEOUT: int = 20
+    OCR_ENGINE: str = "ocrmypdf"  # "tesseract" or "ocrmypdf"
 
     class Config:
         env_file = find_dotenv("local.env")

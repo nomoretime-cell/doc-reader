@@ -210,7 +210,7 @@ def get_pages(
     spell_lang: Optional[str],
     max_pages: Optional[int] = None,
     parallel: int = settings.OCR_PARALLEL_WORKERS,
-) -> Tuple[list[Page], list[Union[int, str, int]], dict]:
+) -> Tuple[list[Page], dict]:
     pages: list[Page] = []
     ocr_pages = 0
     ocr_failed = 0
@@ -244,7 +244,6 @@ def get_pages(
 
     return (
         pages,
-        doc.get_toc(),
         {"ocr_pages": ocr_pages, "ocr_failed": ocr_failed, "ocr_success": ocr_success},
     )
 

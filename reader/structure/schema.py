@@ -1,12 +1,11 @@
-from collections import Counter
-import logging
-from typing import List, Optional
-
-from pydantic import BaseModel, field_validator
-import ftfy
-
 from reader.structure.bbox import boxes_intersect_pct, multiple_boxes_intersect
 from reader.settings import settings
+
+from collections import Counter
+from typing import List, Optional
+from pydantic import BaseModel, field_validator
+import ftfy
+import logging
 
 
 def find_span_type(span, page_blocks):
