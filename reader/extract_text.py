@@ -1,20 +1,17 @@
+from reader.ocr.page import ocr_page
+from reader.ocr.utils import is_string_illegal, parse_font_flags
+from reader.settings import settings
+from reader.structure.schema import ImageInfo, Span, Line, Block, Page
+from reader.structure.bbox import correct_rotation
+
 import base64
+import fitz as pymupdf
 import io
 from typing import Tuple, Optional, Union
-
 from spellchecker import SpellChecker
 from PIL import Image
 from math import isclose
-
-from reader.ocr.page import ocr_entire_page
-from reader.ocr.utils import detect_bad_ocr, font_flags_decomposer
-from reader.settings import settings
-from reader.schema import ImageInfo, Span, Line, Block, Page
 from concurrent.futures import ThreadPoolExecutor
-
-import fitz as pymupdf
-
-from reader.bbox import correct_rotation
 
 
 def get_doc_text(doc) -> str:
@@ -66,10 +63,9 @@ def get_blocks(
     ocr=False,
 ) -> list[Block]:
     page: pymupdf.Page = doc.load_page(pnum)
-    rotation = page.rotation
 
     if ocr:
-        blocks = ocr_entire_page(page, tess_lang, spellchecker)
+        blocks = ocr_page(page, tess_lang, spellchecker)
     else:
         blocks = page.get_text("dict", sort=True, flags=settings.TEXT_FLAGS)["blocks"]
 
@@ -86,7 +82,7 @@ def get_blocks(
                     text=block_text,
                     bbox=correct_rotation(bbox, page),
                     span_id=f"{pnum}_{block_idx}_{line_idx}_{span_id}",
-                    font=f"{s['font']}_{font_flags_decomposer(s['flags'])}",  # Add font flags to end of font
+                    font=f"{s['font']}_{parse_font_flags(s['flags'])}",  # Add font flags to end of font
                     color=s["color"],
                     ascender=s["ascender"],
                     descender=s["descender"],
@@ -110,51 +106,41 @@ def get_blocks(
         if len(block_lines) > 0:
             return_blocks.append(block_obj)
 
-    # If the page was rotated, sort the text again
-    if rotation > 0:
+    if page.rotation > 0:
         return_blocks = sort_rotated_text(return_blocks)
     return return_blocks
 
 
-def get_page_image(mupdf_page: pymupdf.Page, inner_page: Page):
+def get_page_image(
+    mupdf_page: pymupdf.Page, bbox: list[float], width: float, height: float
+):
+    # pt: 表述 字体大小，页面元素，行间距，行高等
+    # dpi（dots per inch）: 在数字图像上下文指的是 像素(图像的大小取决于 dpi)
     # 1pt = 1/72 inch (pt可以理解成物理尺寸)
     # image width = inch width * dpi
     # image height = inch height * dpi
 
-    # inner_page.bbox = [0.0, 0.0, 612.0, 792.0]  612 is 612pt, 792 is 792pt
-    # image width(816) = 612pt/72(pt/inch) * 96 dpi
-    # image height(1056) = 792pt/72(pt/inch) * 96 dpi
-
-    # pt 也被用来表述 字体大小，页面元素，行间距，行高等
-    # dpi（Dots Per Inch）的值在数字图像上下文指的是 像素，否则是 打印点
-    # 图像的大小取决于 dpi
-
-    pixmap = mupdf_page.get_pixmap(
-        dpi=settings.PDF_IMAGE_DPI, annots=False, clip=inner_page.bbox
-    )
+    # bbox = [0.0, 0.0, 612.0, 792.0]  612 is 612pt, 792 is 792pt
+    # image width = 816 = 612pt/72(pt/inch) * 96 dpi
+    # image height = 1056 = 792pt/72(pt/inch) * 96 dpi
+    pixmap = mupdf_page.get_pixmap(dpi=settings.PDF_IMAGE_DPI, annots=False, clip=bbox)
     png_image = Image.open(io.BytesIO(pixmap.pil_tobytes(format="PNG")))
     image = png_image.convert("RGB")
     image_width, image_height = image.size
 
-    page_pt_box = inner_page.bbox
-    page_pt_width = inner_page.width
-    page_pt_height = inner_page.height
-
-    assert isclose(
-        image_width / page_pt_width, image_height / page_pt_height, abs_tol=2e-2
-    )
+    assert isclose(image_width / width, image_height / height, abs_tol=2e-2)
 
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     return ImageInfo(
-        image_base64=image_base64,
-        image_height=image.height,
-        image_width=image.width,
-        page_pt_box=page_pt_box,
-        page_pt_width=page_pt_width,
-        page_pt_height=page_pt_height,
+        content_base64=image_base64,
+        height=image.height,
+        width=image.width,
+        pt_bbox=bbox,
+        pt_width=width,
+        pt_height=height,
     )
 
 
@@ -164,37 +150,41 @@ def get_page(
     tess_lang: str,
     spell_lang: Optional[str],
     if_no_text: bool,
-    disable_ocr: bool = False,
-    min_ocr_page: int = 2,
 ):
+    # get specific spellchecker
+    spellchecker = SpellChecker(language=spell_lang) if spell_lang else None
+
+    # get page info though pdf utils
+    page = Page(
+        blocks=get_blocks(doc, pnum, tess_lang, spellchecker, ocr=False),
+        pnum=pnum,
+        bbox=doc[pnum].bound(),
+    )
+
+    # get ocr conditions
+    ocr_conditions = [
+        (
+            # 'scanned document'
+            if_no_text
+            or (
+                # 'digital document' but text occur error
+                len(page.prelim_text) > 0
+                and is_string_illegal(page.prelim_text, spellchecker)
+            )
+        ),
+    ]
+
+    # reocr current page (get page info failed)
     ocr_pages = 0
     ocr_success = 0
     ocr_failed = 0
-
-    spellchecker = SpellChecker(language=spell_lang) if spell_lang else None
-
-    # get_inbuilt_image(doc, pnum)
-    blocks = get_blocks(doc, pnum, tess_lang, spellchecker)
-    page = Page(blocks=blocks, pnum=pnum, bbox=doc[pnum].bound())
-
-    # OCR page if we got minimal text, or if we got too many spaces
-    conditions = [
-        (
-            if_no_text  # Full doc has no text, and needs full OCR
-            or (
-                len(page.prelim_text) > 0
-                and detect_bad_ocr(page.prelim_text, spellchecker)
-            )  # Bad OCR
-        ),
-        # keep title
-        # (pnum == 0) or (min_ocr_page < pnum < len(doc) - 1),
-        # min_ocr_page < pnum < len(doc) - 1,
-        not disable_ocr,
-    ]
-    if all(conditions) or settings.OCR_ALL_PAGES:
+    if all(ocr_conditions) or settings.OCR_ALL_PAGES:
         blocks = get_blocks(doc, pnum, tess_lang, spellchecker, ocr=True)
         page = Page(
-            blocks=blocks, pnum=pnum, bbox=doc[pnum].bound(), rotation=page.rotation
+            blocks=blocks,
+            pnum=pnum,
+            bbox=doc[pnum].bound(),
+            rotation=page.rotation,
         )
         ocr_pages = 1
         if len(blocks) == 0:
@@ -202,7 +192,11 @@ def get_page(
         else:
             ocr_success = 1
 
-    page.image_info = get_page_image(doc.load_page(pnum), page)
+    # get page image
+    page.image_info = get_page_image(
+        doc.load_page(pnum), page.bbox, page.width, page.height
+    )
+
     return page, {
         "ocr_pages": ocr_pages,
         "ocr_failed": ocr_failed,
@@ -222,25 +216,27 @@ def get_pages(
     ocr_failed = 0
     ocr_success = 0
 
-    process_pages = min(max_pages, len(doc)) if max_pages else len(doc)
+    # get num of pages to read
+    page_num_to_read = min(max_pages, len(doc)) if max_pages else len(doc)
+    # is digital pdf or scanned pdf
     if_no_text = len(get_doc_text(doc).strip()) == 0
 
+    # process pages
     with ThreadPoolExecutor(
         max_workers=parallel, thread_name_prefix="GetPagesThread"
     ) as pool:
-        # new_list = [expression for item in iterable if condition]
-        args_list = [
+        pages_args = [
             (doc, pnum, tess_lang, spell_lang, if_no_text)
-            for pnum in range(process_pages)
+            for pnum in range(page_num_to_read)
         ]
         if parallel == 1:
             func = map
         else:
             func = pool.map
-        results = func(lambda args: get_page(*args), args_list)
+        pages_result = func(lambda args: get_page(*args), pages_args)
 
-        for result in results:
-            page, ocr_stats = result
+        for page_result in pages_result:
+            page, ocr_stats = page_result
             pages.append(page)
             ocr_pages += ocr_stats["ocr_pages"]
             ocr_failed += ocr_stats["ocr_failed"]

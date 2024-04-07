@@ -1,48 +1,46 @@
-import io
-from typing import List, Optional
+from reader.ocr.utils import is_string_illegal
+from reader.structure.schema import Block
+from reader.settings import settings
 
+import io
 import fitz as pymupdf
 import ocrmypdf
 from spellchecker import SpellChecker
+from typing import List, Optional
 
-from reader.ocr.utils import detect_bad_ocr
-from reader.schema import Block
-from reader.settings import settings
 
 ocrmypdf.configure_logging(verbosity=ocrmypdf.Verbosity.quiet)
 
 
-def ocr_entire_page(
+def ocr_page(
     page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     if settings.OCR_ENGINE == "tesseract":
-        return ocr_entire_page_tess(page, lang, spellchecker)
+        return ocr_page_with_tesseract(page, lang, spellchecker)
     elif settings.OCR_ENGINE == "ocrmypdf":
-        return ocr_entire_page_ocrmp(page, lang, spellchecker)
+        return ocr_page_with_ocrmypdf(page, lang, spellchecker)
     else:
         raise ValueError(f"Unknown OCR engine {settings.OCR_ENGINE}")
 
 
-def ocr_entire_page_tess(
+def ocr_page_with_tesseract(
     page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     try:
-        full_tp = page.get_textpage_ocr(
+        textpage = page.get_textpage_ocr(
             flags=settings.TEXT_FLAGS, dpi=settings.OCR_DPI, full=True, language=lang
         )
         blocks = page.get_text(
-            "dict", sort=True, flags=settings.TEXT_FLAGS, textpage=full_tp
+            "dict", sort=True, flags=settings.TEXT_FLAGS, textpage=textpage
         )["blocks"]
-        full_text = page.get_text(
-            "text", sort=True, flags=settings.TEXT_FLAGS, textpage=full_tp
+        page_text = page.get_text(
+            "text", sort=True, flags=settings.TEXT_FLAGS, textpage=textpage
         )
 
-        if len(full_text) == 0:
+        if len(page_text) == 0:
             return []
 
-        # Check if OCR worked. If it didn't, return empty list
-        # OCR can fail if there is a scanned blank page with some faint text impressions, for example
-        if detect_bad_ocr(full_text, spellchecker):
+        if is_string_illegal(page_text, spellchecker):
             return []
     except RuntimeError as e:
         print(e)
@@ -50,7 +48,7 @@ def ocr_entire_page_tess(
     return blocks
 
 
-def ocr_entire_page_ocrmp(
+def ocr_page_with_ocrmypdf(
     page: pymupdf.Page, lang: str, spellchecker: Optional[SpellChecker] = None
 ) -> List[Block]:
     # Use ocrmypdf to get OCR text for the whole page
@@ -79,15 +77,15 @@ def ocr_entire_page_ocrmp(
     )
     ocr_pdf = pymupdf.open("pdf", outbytes.getvalue())  # read output as fitz PDF
     blocks = ocr_pdf[0].get_text("dict", sort=True, flags=settings.TEXT_FLAGS)["blocks"]
-    full_text = ocr_pdf[0].get_text("text", sort=True, flags=settings.TEXT_FLAGS)
+    page_text = ocr_pdf[0].get_text("text", sort=True, flags=settings.TEXT_FLAGS)
 
     # Make sure the original pdf/epub/mobi bbox and the ocr pdf bbox are the same
     assert page.bound() == ocr_pdf[0].bound()
 
-    if len(full_text) == 0:
+    if len(page_text) == 0:
         return []
 
-    if detect_bad_ocr(full_text, spellchecker):
+    if is_string_illegal(page_text, spellchecker):
         return []
 
     return blocks

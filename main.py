@@ -4,7 +4,7 @@
 
 from reader.settings import settings
 from reader.extract_text import get_pages
-from reader.schema import Page
+from reader.structure.schema import Page
 from pyfunvice import faas, start_faas
 
 import fitz as pymupdf
@@ -13,7 +13,7 @@ import magic
 
 
 def get_language() -> tuple[str, str, str]:
-    lang = settings.DEFAULT_LANG
+    lang = settings.LANGUAGE
 
     # tesseract language (default add "eng")
     tesseract_lang = settings.TESSERACT_LANGUAGES.get(lang, "eng")
@@ -21,7 +21,7 @@ def get_language() -> tuple[str, str, str]:
         tesseract_lang = f"eng+{tesseract_lang}"
 
     # spellchecker language
-    spell_lang = settings.SPELLCHECK_LANGUAGES.get(lang, None)
+    spell_lang = settings.SPELLCHECK_LANGUAGES.get(lang, "en")
     return lang, tesseract_lang, spell_lang
 
 
@@ -43,11 +43,11 @@ def get_type(
 
 
 class MetaInfo:
-    def __init__(self, filetype, language, toc, pages, ocr_stats):
+    def __init__(self, filetype, language, page_num, toc, ocr_stats):
         self.filetype = filetype
         self.language = language
+        self.page_num = page_num
         self.toc = toc
-        self.pages = pages
         self.ocr_stats = ocr_stats
 
 
@@ -57,7 +57,7 @@ def read_pdf(
     parallel_factor: int = 1,
     debug_mode: bool = False,
 ):
-    # get meta info
+    # get target language & file type
     lang, tesseract_lang, spell_lang = get_language()
     filetype = get_type(fname)
 
@@ -75,12 +75,13 @@ def read_pdf(
         parallel=settings.OCR_PARALLEL_WORKERS * parallel_factor,
     )
 
-    return MetaInfo(filetype, lang, toc, len(pages), ocr_stats), pages
+    return MetaInfo(filetype, lang, len(pages), toc, ocr_stats), pages
 
 
 @faas(path="/api/v1/parser/file", body_type="form-data")
 async def parser_file(file_name: str):
     pages: list[Page] = []
+    meta_info: MetaInfo = None
     meta_info, pages = read_pdf(file_name)
     return {"meta_info": meta_info, "pages": pages}
 

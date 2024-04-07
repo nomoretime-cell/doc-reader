@@ -1,12 +1,24 @@
-from typing import Optional
+from reader.settings import settings
 
+from typing import Optional
 from nltk import wordpunct_tokenize
 from spellchecker import SpellChecker
-from reader.settings import settings
 import re
 
 
-def detect_bad_ocr(
+def alphanum_ratio(text):
+    text = text.replace(" ", "")
+    text = text.replace("\n", "")
+    alphanumeric_count = sum([1 for c in text if c.isalnum()])
+
+    if len(text) == 0:
+        return 1
+
+    ratio = alphanumeric_count / len(text)
+    return ratio
+
+
+def is_string_illegal(
     text,
     spellchecker: Optional[SpellChecker],
     misspell_threshold=0.7,
@@ -47,40 +59,28 @@ def detect_bad_ocr(
     return False
 
 
-def font_flags_decomposer(flags):
+def parse_font_flags(flags):
     """Make font flags human readable."""
-    l = []
+    flags_result: list[str] = []
     if flags & 2**0:
         # 上标
-        l.append("superscript")
+        flags_result.append("superscript")
     if flags & 2**1:
         # 斜体
-        l.append("italic")
+        flags_result.append("italic")
     if flags & 2**2:
         # 笔画粗细不同
-        l.append("serifed")
+        flags_result.append("serifed")
     else:
         # 笔划粗细相同
-        l.append("sans")
+        flags_result.append("sans")
     if flags & 2**3:
         # 等宽字体
-        l.append("monospaced")
+        flags_result.append("monospaced")
     else:
         # 比例字体
-        l.append("proportional")
+        flags_result.append("proportional")
     if flags & 2**4:
         # 粗体
-        l.append("bold")
-    return "_".join(l)
-
-
-def alphanum_ratio(text):
-    text = text.replace(" ", "")
-    text = text.replace("\n", "")
-    alphanumeric_count = sum([1 for c in text if c.isalnum()])
-
-    if len(text) == 0:
-        return 1
-
-    ratio = alphanumeric_count / len(text)
-    return ratio
+        flags_result.append("bold")
+    return "_".join(flags_result)

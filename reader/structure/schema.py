@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel, field_validator
 import ftfy
 
-from reader.bbox import boxes_intersect_pct, multiple_boxes_intersect
+from reader.structure.bbox import boxes_intersect_pct, multiple_boxes_intersect
 from reader.settings import settings
 
 
@@ -156,12 +156,12 @@ class Block(BboxElement):
 
 
 class ImageInfo(BaseModel):
-    image_base64: str
-    image_height: float
-    image_width: float
-    page_pt_box: List[float]
-    page_pt_width: float
-    page_pt_height: float
+    content_base64: str
+    height: float
+    width: float
+    pt_bbox: list[float]
+    pt_height: float
+    pt_width: float
 
 
 class Page(BboxElement):

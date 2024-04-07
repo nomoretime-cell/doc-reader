@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     PDF_IMAGE_DPI: int = 96
 
     # Language
-    DEFAULT_LANG: str = "Chinese"
+    LANGUAGE: str = "Chinese"
     TESSERACT_LANGUAGES: Dict = {
         "English": "eng",
         "Spanish": "spa",
