@@ -1066,13 +1066,13 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pyfunvice"
-version = "0.1.3"
+version = "0.1.4"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "pyfunvice-0.1.3-py3-none-any.whl", hash = "sha256:42cb7b9adf0a28d907531b1ed621fb7b94c7915e907e5f532acdd4dccc2a385a"},
-    {file = "pyfunvice-0.1.3.tar.gz", hash = "sha256:3723da1e10b2c32d7ad5907e9da54f99d9a8a7ca96d746a52cdf2cfbcf7f2107"},
+    {file = "pyfunvice-0.1.4-py3-none-any.whl", hash = "sha256:9258ba849d8f5715fb7493939db05e2ab3d25e891ae02bf2705032e35979241e"},
+    {file = "pyfunvice-0.1.4.tar.gz", hash = "sha256:076ccc37dc0bd851782c714242d4a764d792c33c55371618c979216ea772ddc9"},
 ]
 
 [package.dependencies]
@@ -1593,4 +1593,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b3c7e24c25629f0399d132220a37d0afe7cb9ee235569f48f4d55f0f1d8d5e19"
+content-hash = "f15ef4f1f40b9338c8caa44293fa274f7cc5c3118230a0874e9964e8b9e0e86e"
