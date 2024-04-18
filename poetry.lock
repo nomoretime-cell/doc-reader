@@ -1072,8 +1072,9 @@ name = "pyfunvice"
 version = "0.1.5"
 description = ""
 optional = false
-python-versions = ">=3.11,<4.0"
+python-versions = "<4.0,>=3.11"
 files = [
+    {file = "pyfunvice-0.1.5-py3-none-any.whl", hash = "sha256:e3f293ea04e64c6e1a2f59be1ff6aba38c7da013384f2991ecd8bce5a1ec1864"},
     {file = "pyfunvice-0.1.5.tar.gz", hash = "sha256:beb021ea1dde6722f9a8174c6ae5d8a6ca5c8f654a325ec4bc552c73bd8e1fa8"},
 ]
 
@@ -1084,10 +1085,6 @@ fastapi = ">=0.110.0,<0.111.0"
 gunicorn = ">=21.2.0,<22.0.0"
 python-multipart = ">=0.0.9,<0.0.10"
 uvicorn = ">=0.29.0,<0.30.0"
-
-[package.source]
-type = "file"
-url = "../pyfunvice/dist/pyfunvice-0.1.5.tar.gz"
 
 [[package]]
 name = "pygments"
@@ -1599,4 +1596,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "10a1a948c815cfd84c6f3130f8b4ce5da5318b304584c2c04a2cd7d714400e2a"
+content-hash = "e8899f6c9dfba3b44f1082e309d501807c219a1b542bcb9aa18154c8a220d2eb"
