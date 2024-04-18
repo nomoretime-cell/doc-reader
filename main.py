@@ -5,7 +5,7 @@
 from reader.settings import settings
 from reader.extract_text import get_pages
 from reader.structure.schema import Page
-from pyfunvice import faas, start_faas
+from pyfunvice import app_service, start_app
 
 import fitz as pymupdf
 import logging
@@ -76,7 +76,7 @@ def read_pdf(
     return DocInfo(filetype, len(pages), ocr_stats), pages
 
 
-@faas(path="/api/v1/parser/file", body_type="form-data")
+@app_service(path="/api/v1/parser/ppl/reader", body_type="form-data")
 async def parser_file(file_name: str):
     pages: list[Page] = []
     doc_info: DocInfo = None
@@ -85,4 +85,4 @@ async def parser_file(file_name: str):
 
 
 if __name__ == "__main__":
-    start_faas(workers=settings.WORKER_NUM)
+    start_app(workers=settings.WORKER_NUM)
