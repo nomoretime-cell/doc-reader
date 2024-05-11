@@ -7,6 +7,9 @@ from reader.extract_text import get_pages
 from reader.structure.schema import Page
 from pyfunvice import app_service, start_app
 
+import base64
+import os
+import uuid
 import fitz as pymupdf
 import logging
 import magic
@@ -76,13 +79,52 @@ def read_pdf(
     return DocInfo(filetype, len(pages), ocr_stats), pages
 
 
-@app_service(path="/api/v1/parser/ppl/reader", body_type="form-data")
+def encode_pdf_to_base64(pdf_path, output_base64_path):
+    with open(pdf_path, "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+        encoded_string = base64.b64encode(pdf_bytes).decode("utf-8")
+    with open(output_base64_path, "w") as output_file:
+        output_file.write(encoded_string)
+    return encoded_string
+
+
+def decode_base64_to_pdf(encoded_string, output_path):
+    decoded_bytes = base64.b64decode(encoded_string.encode("utf-8"))
+    with open(output_path, "wb") as output_file:
+        output_file.write(decoded_bytes)
+
+
+@app_service(path="/api/v1/parser/ppl/reader/file", body_type="form-data")
 async def parser_file(file_name: str):
     pages: list[Page] = []
     doc_info: DocInfo = None
+    
     doc_info, pages = read_pdf(file_name)
+    
+    return {"doc_info": doc_info, "pages": pages}
+
+
+@app_service(path="/api/v1/parser/ppl/reader")
+async def parser_file_base64(data: dict):
+    pages: list[Page] = []
+    doc_info: DocInfo = None
+    
+    pdf_local_path = f"./{str(uuid.uuid4())}-decode.pdf"
+    decode_base64_to_pdf(data["file"], pdf_local_path)
+    doc_info, pages = read_pdf(pdf_local_path)
+    os.remove(pdf_local_path)
+    
     return {"doc_info": doc_info, "pages": pages}
 
 
 if __name__ == "__main__":
     start_app(workers=settings.WORKER_NUM)
+
+
+def generate_encode_file():
+    input_pdf_path = "./vllm.pdf"
+    encode_file_path = "./vllm-encode.txt"
+    encoded_string = encode_pdf_to_base64(input_pdf_path, encode_file_path)
+    output_pdf_path = "./vllm-decode.pdf"
+    decode_base64_to_pdf(encoded_string, output_pdf_path)
+    print("Decoded PDF saved to:", output_pdf_path)
