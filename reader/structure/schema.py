@@ -163,13 +163,17 @@ class ImageInfo(BaseModel):
     pt_width: float
 
 
+class DocInfo(BaseModel):
+    filetype: str
+    page_num: int
+
+
 class Page(BboxElement):
     blocks: List[Block]
     pnum: int
     text_font: Optional[int] = None
     column_count: Optional[int] = None
     rotation: Optional[int] = None  # Rotation degrees of the page
-    image_info: Optional[ImageInfo] = None
 
     def get_nonblank_lines(self) -> List[Line]:
         lines = self.get_all_lines()
@@ -231,6 +235,12 @@ class Page(BboxElement):
     @property
     def prelim_text(self):
         return "\n".join([b.prelim_text for b in self.blocks])
+
+
+class PageWrapper(BaseModel):
+    doc_info: Optional[DocInfo] = None
+    image_info: Optional[ImageInfo] = None
+    page_info: Optional[Page] = None
 
 
 class MergedLine(BboxElement):

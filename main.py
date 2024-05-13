@@ -4,7 +4,7 @@
 
 from reader.settings import settings
 from reader.extract_text import get_pages
-from reader.structure.schema import Page
+from reader.structure.schema import DocInfo, Page, PageWrapper
 from pyfunvice import app_service, start_app
 
 import base64
@@ -45,13 +45,6 @@ def get_type(
         raise ValueError(f"input file type [{type}] is not supported.")
 
 
-class DocInfo:
-    def __init__(self, filetype, page_num, ocr_stats):
-        self.filetype = filetype
-        self.page_num = page_num
-        self.ocr_stats = ocr_stats
-
-
 def read_pdf(
     fname: str,
     max_pages=None,
@@ -76,7 +69,10 @@ def read_pdf(
         parallel=settings.OCR_PARALLEL_WORKERS * parallel_factor,
     )
 
-    return DocInfo(filetype, len(pages), ocr_stats), pages
+    for page in pages:
+        page.doc_info = DocInfo(filetype=filetype, page_num=len(pages))
+
+    return pages
 
 
 def encode_pdf_to_base64(pdf_path, output_base64_path):
@@ -96,25 +92,20 @@ def decode_base64_to_pdf(encoded_string, output_path):
 
 @app_service(path="/api/v1/parser/ppl/reader/file", body_type="form-data")
 async def parser_file(file_name: str):
-    pages: list[Page] = []
-    doc_info: DocInfo = None
-    
-    doc_info, pages = read_pdf(file_name)
-    
-    return {"doc_info": doc_info, "pages": pages}
+    pages: list[PageWrapper] = []
+    pages = read_pdf(file_name)
+    return pages
 
 
 @app_service(path="/api/v1/parser/ppl/reader")
 async def parser_file_base64(data: dict):
     pages: list[Page] = []
-    doc_info: DocInfo = None
-    
     pdf_local_path = f"./{str(uuid.uuid4())}-decode.pdf"
     decode_base64_to_pdf(data["file"], pdf_local_path)
-    doc_info, pages = read_pdf(pdf_local_path)
+    pages = read_pdf(pdf_local_path)
     os.remove(pdf_local_path)
-    
-    return {"doc_info": doc_info, "pages": pages}
+
+    return pages
 
 
 if __name__ == "__main__":

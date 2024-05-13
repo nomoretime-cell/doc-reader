@@ -1,7 +1,7 @@
 from reader.ocr.page import ocr_page
 from reader.ocr.utils import is_string_illegal, parse_font_flags
 from reader.settings import settings
-from reader.structure.schema import ImageInfo, Span, Line, Block, Page
+from reader.structure.schema import ImageInfo, PageWrapper, Span, Line, Block, Page
 from reader.structure.bbox import correct_rotation
 
 import base64
@@ -192,16 +192,15 @@ def get_page(
         else:
             ocr_success = 1
 
-    # get page image
-    page.image_info = get_page_image(
-        doc.load_page(pnum), page.bbox, page.width, page.height
+    return (
+        page,
+        get_page_image(doc.load_page(pnum), page.bbox, page.width, page.height),
+        {
+            "ocr_pages": ocr_pages,
+            "ocr_failed": ocr_failed,
+            "ocr_success": ocr_success,
+        },
     )
-
-    return page, {
-        "ocr_pages": ocr_pages,
-        "ocr_failed": ocr_failed,
-        "ocr_success": ocr_success,
-    }
 
 
 def get_pages(
@@ -210,8 +209,8 @@ def get_pages(
     spell_lang: Optional[str],
     max_pages: Optional[int] = None,
     parallel: int = settings.OCR_PARALLEL_WORKERS,
-) -> Tuple[list[Page], dict]:
-    pages: list[Page] = []
+):
+    pages: list[PageWrapper] = []
     ocr_pages = 0
     ocr_failed = 0
     ocr_success = 0
@@ -236,8 +235,11 @@ def get_pages(
         pages_result = func(lambda args: get_page(*args), pages_args)
 
         for page_result in pages_result:
-            page, ocr_stats = page_result
-            pages.append(page)
+            page, page_image, ocr_stats = page_result
+            page_wrapper: PageWrapper = PageWrapper()
+            page_wrapper.page_info = page
+            page_wrapper.image_info = page_image
+            pages.append(page_wrapper)
             ocr_pages += ocr_stats["ocr_pages"]
             ocr_failed += ocr_stats["ocr_failed"]
             ocr_success += ocr_stats["ocr_success"]
