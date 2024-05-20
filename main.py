@@ -99,7 +99,7 @@ async def parser_file(file_name: str):
 
 @app_service(path="/api/v1/parser/ppl/reader")
 async def parser_file_base64(data: dict):
-    pages: list[Page] = []
+    pages: list[PageWrapper] = []
     pdf_local_path = f"./{str(uuid.uuid4())}-decode.pdf"
     decode_base64_to_pdf(data["file"], pdf_local_path)
     pages = read_pdf(pdf_local_path)
