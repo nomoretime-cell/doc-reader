@@ -141,6 +141,7 @@ def get_page_image(
         pt_bbox=bbox,
         pt_width=width,
         pt_height=height,
+        dpi=settings.PDF_IMAGE_DPI,
     )
 
 

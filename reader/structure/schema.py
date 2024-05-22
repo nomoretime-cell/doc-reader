@@ -161,6 +161,7 @@ class ImageInfo(BaseModel):
     pt_bbox: list[float]
     pt_height: float
     pt_width: float
+    dpi: int
 
 
 class DocInfo(BaseModel):
