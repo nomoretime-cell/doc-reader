@@ -6,6 +6,6 @@ docker run \
   -d -it \
   -e WORKER_NUM=2 \
   -e OCR_ALL_PAGES=False \
-  -p 8010:8000 \
+  -p 8000:8000 \
   --name doc-reader \
   doc-reader:${latest_tag}
