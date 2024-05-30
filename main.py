@@ -13,6 +13,7 @@ import uuid
 import fitz as pymupdf
 import logging
 import magic
+import requests
 
 
 def get_language() -> tuple[str, str, str]:
@@ -89,6 +90,10 @@ def decode_base64_to_pdf(encoded_string, output_path):
     with open(output_path, "wb") as output_file:
         output_file.write(decoded_bytes)
 
+def download_pdf(url, output_path):
+    response = requests.get(url)
+    with open(output_path, "wb") as output_file:
+        output_file.write(response.content)
 
 @app_service(path="/api/v1/parser/ppl/reader/file", body_type="form-data")
 async def parser_file(file_name: str):
@@ -101,7 +106,12 @@ async def parser_file(file_name: str):
 async def parser_file_base64(data: dict):
     pages: list[PageWrapper] = []
     pdf_local_path = f"./{str(uuid.uuid4())}-decode.pdf"
-    decode_base64_to_pdf(data["file"], pdf_local_path)
+    # http url
+    if "http" in data["file"]:
+        download_pdf(data["file"], pdf_local_path)
+    # base64
+    else:
+        decode_base64_to_pdf(data["file"], pdf_local_path)
     pages = read_pdf(pdf_local_path)
     os.remove(pdf_local_path)
 
