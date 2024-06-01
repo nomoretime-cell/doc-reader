@@ -2,6 +2,7 @@
 # sys.path.append("/home/yejibing/code/doc-parser/pyfunvice")
 # from pyfunvice import faas, start_faas
 
+import threading
 from reader.settings import settings
 from reader.extract_text import get_pages
 from reader.structure.schema import DocInfo, Page, PageWrapper
@@ -14,6 +15,10 @@ import fitz as pymupdf
 import logging
 import magic
 import requests
+
+logging.basicConfig(
+    level=logging.INFO, format="[%(asctime)s] [%(thread)d] [%(levelname)s] %(message)s"
+)
 
 
 def get_language() -> tuple[str, str, str]:
@@ -90,10 +95,12 @@ def decode_base64_to_pdf(encoded_string, output_path):
     with open(output_path, "wb") as output_file:
         output_file.write(decoded_bytes)
 
+
 def download_pdf(url, output_path):
     response = requests.get(url)
     with open(output_path, "wb") as output_file:
         output_file.write(response.content)
+
 
 @app_service(path="/api/v1/parser/ppl/reader/file", body_type="form-data")
 async def parser_file(file_name: str):
@@ -108,13 +115,28 @@ async def parser_file_base64(data: dict):
     pdf_local_path = f"./{str(uuid.uuid4())}-decode.pdf"
     # http url
     if "http" in data["file"]:
+        logging.info(
+            "POST request"
+            + f" [P{os.getpid()}][T{threading.current_thread().ident}][{data['requestId']}] "
+            + "file is [URL]"
+        )
         download_pdf(data["file"], pdf_local_path)
     # base64
     else:
+        logging.info(
+            "POST request"
+            + f" [P{os.getpid()}][T{threading.current_thread().ident}][{data['requestId']}] "
+            + "file is [BASE64]"
+        )
         decode_base64_to_pdf(data["file"], pdf_local_path)
     pages = read_pdf(pdf_local_path)
     os.remove(pdf_local_path)
 
+    logging.info(
+        "Return result"
+        + f" [P{os.getpid()}][T{threading.current_thread().ident}][{data['requestId']}] "
+        + f"pages: {len(pages)}"
+    )
     return pages
 
 
