@@ -17,7 +17,7 @@ RUN apt-get update && \
     yes | apt-get install ghostscript
 
 # install poetry
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+# RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 RUN pip install --no-cache-dir poetry nltk gunicorn uvicorn
 # install poetry dependencies
 RUN poetry config installer.max-workers 20

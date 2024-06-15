@@ -2,11 +2,12 @@
 # sys.path.append("/home/yejibing/code/doc-parser/pyfunvice")
 # from pyfunvice import faas, start_faas
 
+import datetime
 import threading
 from reader.settings import settings
 from reader.extract_text import get_pages
-from reader.structure.schema import DocInfo, Page, PageWrapper
-from pyfunvice import app_service, start_app
+from reader.structure.schema import DocInfo, PageWrapper
+from pyfunvice import app_service, start_app, app_service_get
 
 import base64
 import os
@@ -140,8 +141,14 @@ async def parser_file_base64(data: dict):
     return pages
 
 
+@app_service_get(path="/health")
+async def health(data: dict) -> dict:
+    time_string = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return {"timestamp": time_string}
+
+
 if __name__ == "__main__":
-    start_app(workers=settings.WORKER_NUM)
+    start_app(workers=settings.WORKER_NUM, port=8000)
 
 
 def generate_encode_file():
