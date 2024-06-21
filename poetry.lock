@@ -1062,13 +1062,13 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pyfunvice"
-version = "0.1.10"
+version = "0.1.12"
 description = ""
 optional = false
 python-versions = "<4.0,>=3.11"
 files = [
-    {file = "pyfunvice-0.1.10-py3-none-any.whl", hash = "sha256:23d8aa8b33f80ca24cc2c762b18b0362fb30078b6e84f52d48ff3234a9acdd24"},
-    {file = "pyfunvice-0.1.10.tar.gz", hash = "sha256:5fca20a9e8dc02ae063113779d62513ef78a5108fcfcaeaabbed158891c24c43"},
+    {file = "pyfunvice-0.1.12-py3-none-any.whl", hash = "sha256:ab56ed09267f8b14a30fb887d571b09f8d086e1a0f9a09840605c93852dcc705"},
+    {file = "pyfunvice-0.1.12.tar.gz", hash = "sha256:fb76a7bdbff5bc0f70c935bae3354015f155d85c4a818d59ba79586fa5eacac2"},
 ]
 
 [package.dependencies]
@@ -1455,13 +1455,13 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.2.1"
+version = "2.2.2"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "urllib3-2.2.1-py3-none-any.whl", hash = "sha256:450b20ec296a467077128bff42b73080516e71b56ff59a60a02bef2232c4fa9d"},
-    {file = "urllib3-2.2.1.tar.gz", hash = "sha256:d0570876c61ab9e520d776c38acbbb5b05a776d3f9ff98a5c8fd5162a444cf19"},
+    {file = "urllib3-2.2.2-py3-none-any.whl", hash = "sha256:a448b2f64d686155468037e1ace9f2d2199776e17f0a46610480d311f73e3472"},
+    {file = "urllib3-2.2.2.tar.gz", hash = "sha256:dd505485549a7a552833da5e6063639d0d177c04f23bc3864e41e5dc5f612168"},
 ]
 
 [package.extras]
@@ -1581,4 +1581,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b700c4c6be8a6041685fef362ff6545f45b6ce454c6ceb2c6afd14a67761cb3a"
+content-hash = "0905b5f26586f9b4b3bfe103f68338cf5841d9a385e17d7850d4a1235551e5fa"
